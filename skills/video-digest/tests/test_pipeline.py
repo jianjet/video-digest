@@ -1246,5 +1246,97 @@ class ConsolePython(unittest.TestCase):
             self.assertEqual(command[0], ig.PYTHON)
 
 
+class LinkParsing(unittest.TestCase):
+    def test_link_ids(self):
+        self.assertEqual(ig.link_id("https://www.instagram.com/reel/DAbc123xyz/?igsh=x"), ("instagram", "DAbc123xyz"))
+        self.assertEqual(ig.link_id("https://www.instagram.com/someone/p/CpPost12/"), ("instagram", "CpPost12"))
+        self.assertEqual(ig.link_id("https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=10"), ("youtube", "dQw4w9WgXcQ"))
+        self.assertEqual(ig.link_id("https://youtu.be/dQw4w9WgXcQ?si=x"), ("youtube", "dQw4w9WgXcQ"))
+        self.assertEqual(ig.link_id("https://youtube.com/shorts/-bcdefghijk"), ("youtube", "-bcdefghijk"))
+        self.assertEqual(ig.link_id("https://www.tiktok.com/@who/video/7301234567890"), ("tiktok", "7301234567890"))
+        folder, code = ig.link_id("https://example.com/talk.mp4")
+        self.assertEqual(folder, "web")
+        self.assertRegex(code, r"^u[0-9a-f]{10}$")
+        self.assertEqual(ig.link_id("https://example.com/talk.mp4"), (folder, code))
+
+    def test_parse_links_drops_repeats_and_comments(self):
+        text = ("# my links\nhttps://youtu.be/dQw4w9WgXcQ\nhttps://www.youtube.com/watch?v=dQw4w9WgXcQ, "
+                "https://www.instagram.com/reel/DAbc123xyz/")
+        self.assertEqual(ig.parse_links(text), [("youtube", "dQw4w9WgXcQ", "https://youtu.be/dQw4w9WgXcQ"),
+                                                ("instagram", "DAbc123xyz", "https://www.instagram.com/reel/DAbc123xyz/")])
+
+    def test_parse_links_reads_a_file(self):
+        with tempfile.TemporaryDirectory() as d:
+            f = Path(d) / "links.txt"
+            f.write_text("https://youtu.be/dQw4w9WgXcQ\n\n", encoding="utf-8")
+            self.assertEqual(ig.parse_links(str(f)), [("youtube", "dQw4w9WgXcQ", "https://youtu.be/dQw4w9WgXcQ")])
+
+    def test_a_word_is_not_a_link(self):
+        with self.assertRaises(ValueError):
+            ig.parse_links("https://youtu.be/dQw4w9WgXcQ hello")
+
+    def test_info_meta(self):
+        with tempfile.TemporaryDirectory() as d:
+            self.assertEqual(ig.info_meta(d, "abc"), {})
+            (Path(d) / "abc.info.json").write_text(json.dumps({"webpage_url": "https://x/y", "upload_date": "20261101",
+                                                               "uploader": "Ann", "title": "T", "description": "D\nmore"}),
+                                                   encoding="utf-8")
+            self.assertEqual(ig.info_meta(d, "abc"), {"url": "https://x/y", "date": "2026-11-01", "caption": "Ann: T · D more"})
+
+
+class LinkRuns(Tmp):
+    IG = "https://www.instagram.com/reel/DAbc123xyz/"
+    YT = "https://youtu.be/dQw4w9WgXcQ"
+
+    def calls(self):
+        f = self.root.parent / "ytdlp-args.jsonl"
+        return [json.loads(ln) for ln in f.read_text(encoding="utf-8").splitlines()] if f.exists() else []
+
+    def run_links(self, value, **env):
+        with mock.patch.dict(os.environ, {"FAKE_YTDLP_ARGS": str(self.root.parent / "ytdlp-args.jsonl"), **env}):
+            return ig.cmd_run(value, 30, self.root)
+
+    def test_instagram_and_youtube_in_one_run(self):
+        self.assertEqual(self.run_links(f"{self.IG} {self.YT}"), 0)
+        reel = (self.root / "instagram" / "transcripts" / "DAbc123xyz.md").read_text(encoding="utf-8")
+        video = (self.root / "youtube" / "transcripts" / "dQw4w9WgXcQ.md").read_text(encoding="utf-8")
+        self.assertIn("words from DAbc123xyz", reel)
+        self.assertIn("- caption: someone: title of dQw4w9WgXcQ · the description", video)
+        self.assertIn("- date: 2026-11-01", video)
+        calls = self.calls()
+        self.assertEqual([c[-1] for c in calls], [self.IG, self.YT])  # Instagram first
+        self.assertIn("--cookies-from-browser", calls[0])
+        self.assertNotIn("--cookies-from-browser", calls[1])
+        self.assertTrue(all("--write-info-json" in c for c in calls))
+
+    def test_a_rerun_skips_what_is_done(self):
+        self.run_links(f"{self.IG} {self.YT}")
+        before = len(self.calls())
+        self.assertEqual(self.run_links(f"{self.YT} {self.IG}"), 0)
+        self.assertEqual(len(self.calls()), before)
+
+    def test_youtube_asking_for_a_login_fails_that_link_only(self):
+        error = "ERROR: [youtube] dQw4w9WgXcQ: Sign in to confirm you're not a bot. " + HINT
+        code = self.run_links(f"{self.YT} {self.IG}", FAKE_BAD="dQw4w9WgXcQ", FAKE_YTDLP_ERROR=error)
+        self.assertEqual(code, ig.EXIT_FAIL)  # not EXIT_LOGIN: that would stop the user's Instagram too
+        self.assertTrue((self.root / "instagram" / "transcripts" / "DAbc123xyz.md").exists())
+        self.assertFalse((self.root / "youtube" / "transcripts" / "dQw4w9WgXcQ.md").exists())
+
+    def test_an_instagram_wall_does_not_stop_youtube(self):
+        code = self.run_links(f"{self.IG} {self.YT}", FAKE_BAD="DAbc123xyz", FAKE_YTDLP_ERROR=WALL_RATE)
+        self.assertEqual(code, ig.EXIT_LOGIN)
+        self.assertTrue((self.root / "youtube" / "transcripts" / "dQw4w9WgXcQ.md").exists())
+
+    def test_a_photo_post_link_falls_back_to_gallery_dl(self):
+        link = "https://www.instagram.com/p/CpPost12/"
+        self.assertEqual(self.run_links(link, FAKE_NO_VIDEO="CpPost12"), 0)
+        self.assertTrue((self.root / "instagram" / "frames" / "CpPost12").exists())
+
+    def test_no_login_needed_for_youtube_only(self):
+        (self.profile / "cookies.sqlite").unlink()
+        self.assertEqual(self.run_links(self.YT), 0)
+        self.assertTrue((self.root / "youtube" / "transcripts" / "dQw4w9WgXcQ.md").exists())
+
+
 if __name__ == "__main__":
     unittest.main()

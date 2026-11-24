@@ -52,9 +52,19 @@ def gallery(args):
 
 def ytdlp(args):
     url = args[-1]
-    code = re.search(r"/(?:reel|p)/([^/]+)/", url).group(1)
-    bad = code in os.environ.get("FAKE_BAD", "").split(",")
     template = args[args.index("-o") + 1]
+    code = Path(template).name.split(".")[0]
+    bad = code in os.environ.get("FAKE_BAD", "").split(",")
+    if os.environ.get("FAKE_YTDLP_ARGS"):  # every call's arguments, one JSON line each
+        with open(os.environ["FAKE_YTDLP_ARGS"], "a", encoding="utf-8") as f:
+            f.write(json.dumps(args) + "\n")
+    if "--write-info-json" in args:
+        Path(template.replace("%(ext)s", "info.json")).write_text(json.dumps(
+            {"webpage_url": url, "upload_date": "20261101", "uploader": "someone", "title": f"title of {code}",
+             "description": "the description"}), encoding="utf-8")
+    if code in os.environ.get("FAKE_NO_VIDEO", "").split(","):  # a photo post given as a link
+        print(f"ERROR: [Instagram] {code}: There is no video in this post", file=sys.stderr)
+        sys.exit(1)
     if bad and "FAKE_YTDLP_WARNING" not in os.environ:
         error = os.environ.get("FAKE_YTDLP_ERROR", "ERROR: boom")
         if "audio codec" in error:  # the reel came down; only pulling the sound out of it failed

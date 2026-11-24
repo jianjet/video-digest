@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
-"""video_digest.py - Instagram creators -> post lists -> transcripts. The reading and judging is in ../SKILL.md.
+"""video_digest.py - links or Instagram creators -> transcripts, on-screen text and key frames. The judging is in ../SKILL.md.
 
+    python video_digest.py run --urls <file or links> [--max 30]   Instagram, YouTube, TikTok or any yt-dlp link
     python video_digest.py list --handle H [--days 180] [--tab posts|reels]
     python video_digest.py transcribe --handle H --all [--max 30]
     python video_digest.py transcribe --handle H --picks <file or shortcodes> [--max 30]
 
 Writes to ~/video-digest/ (override with VIDEO_DIGEST_HOME, or the older IG_DIGEST_HOME), never into the repo:
+    <folder>/                         a creator's handle; or instagram, youtube, tiktok, web for links given with run
     <handle>/index.csv                one row per post, merged across runs
     <handle>/transcripts/<code>.md    speech and on-screen text, one file per reel or post that has any
     archive.sqlite3                   what was listed and transcribed; reruns skip what is done
@@ -26,6 +28,7 @@ Why the listing looks the way it does (gallery-dl 1.32.19, read in its source an
   logged-out browser. copy_login() merges the two into a temporary copy and the tools read that.
 """
 import argparse
+import hashlib
 import csv
 import json
 import os
@@ -89,6 +92,10 @@ VIDEO_EXT = {".mp4", ".m4v", ".webm", ".mkv", ".mov"}
 MEDIA_EXT = AUDIO_EXT | VIDEO_EXT | {".ts", ".part", ".ytdl", ".jpg", ".jpeg", ".png", ".webp", ".heic"}
 HAS_RESULT = ("transcribed", "no_speech")
 
+YOUTUBE_RE = re.compile(r"(?:youtube\.com/(?:watch\?(?:[^#\s]*&)?v=|shorts/|live/|embed/)|youtu\.be/)([A-Za-z0-9_-]{11})", re.I)
+TIKTOK_RE = re.compile(r"tiktok\.com/.*?/video/(\d+)", re.I)
+LINK_RE = re.compile(r"^https?://\S+$", re.I)
+LONG_SECONDS = 600        # over this much video, a post gets MAX_FRAMES_LONG key frames
 HANDLE_RE = re.compile(r"^(?!\.+$)[A-Za-z0-9._]{1,30}$")
 CODE_RE = re.compile(r"^[A-Za-z0-9_-]{5,40}$")
 URL_CODE_RE = re.compile(r"instagram\.com/(?:[^/\s]+/)?(?:reels?|p|tv)/([A-Za-z0-9_-]+)")
@@ -516,6 +523,53 @@ def cmd_list(handle, days, root=None, now=None, tab="posts"):
         shutil.rmtree(tmp / "pages", ignore_errors=True)
 
 
+def link_id(url):
+    """A link -> (folder, id): its site's folder and an id that is stable across runs and safe as a file name."""
+    m = URL_CODE_RE.search(url)
+    if m and "instagram.com" in url.lower():
+        return "instagram", m.group(1)
+    m = YOUTUBE_RE.search(url)
+    if m:
+        return "youtube", m.group(1)
+    m = TIKTOK_RE.search(url)
+    if m:
+        return "tiktok", m.group(1)
+    return "web", "u" + hashlib.sha1(url.strip().encode("utf-8")).hexdigest()[:10]
+
+
+def parse_links(value):
+    """A file with one link per line ('#' starts a comment line), or links split by spaces or commas -> [(folder, id, url)].
+    The same video twice is read once."""
+    p = Path(value)
+    text = p.read_text(encoding="utf-8-sig") if len(value) < 260 and p.is_file() else value
+    text = "\n".join(line for line in text.splitlines() if not line.lstrip().startswith("#"))
+    links, seen = [], set()
+    for token in re.split(r"[,\s]+", text):
+        if not token:
+            continue
+        if not LINK_RE.match(token):
+            raise ValueError(f"not a link: {token!r} (links start with http:// or https://)")
+        folder, code = link_id(token)
+        if (folder, code) not in seen:
+            seen.add((folder, code))
+            links.append((folder, code, token))
+    return links
+
+
+def info_meta(folder, code):
+    """What yt-dlp's <code>.info.json says about a link: {url, date, caption}; {} when there is none."""
+    f = Path(folder) / f"{code}.info.json"
+    try:
+        info = json.loads(f.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    day = str(info.get("upload_date") or "")
+    who = info.get("uploader") or info.get("channel") or ""
+    words = " · ".join(x for x in (info.get("title"), info.get("description")) if x)
+    return {"url": info.get("webpage_url") or "", "date": f"{day[:4]}-{day[4:6]}-{day[6:]}" if len(day) == 8 else "",
+            "caption": one_line(f"{who}: {words}" if who else words)}
+
+
 def parse_picks(value):
     """A file with one shortcode or URL per line ('#' comments), or shortcodes and URLs split by commas or spaces."""
     p = Path(value)
@@ -558,12 +612,18 @@ def dir_size(folder):
     return sum(p.stat().st_size for p in folder.rglob("*") if p.is_file())
 
 
+def login_args(cookies):
+    """The Firefox login copy for Instagram; nothing for other sites, which are read logged out."""
+    return ["--cookies-from-browser", f"firefox:{cookies}"] if cookies else []
+
+
 def download_audio(code, url, folder, cookies):
-    """One reel into its own folder: -x pulls the audio out and -k keeps the video for its on-screen text.
+    """One reel or video into its own folder: -x pulls the audio out and -k keeps the video for its on-screen text;
+    --write-info-json keeps the title, creator and date for a link that no listing described.
     Returns (audio path or None, error text)."""
     folder.mkdir(parents=True, exist_ok=True)
-    cmd = YTDLP + ["--cookies-from-browser", f"firefox:{cookies}", "-f", "best/bv*+ba", "-x", "-k", "--no-playlist",
-                   "--playlist-items", "1", "--no-progress", "-o", str(folder / f"{code}.%(ext)s"), url]
+    cmd = YTDLP + login_args(cookies) + ["-f", "best/bv*+ba", "-x", "-k", "--no-playlist", "--write-info-json",
+                                         "--playlist-items", "1", "--no-progress", "-o", str(folder / f"{code}.%(ext)s"), url]
     done = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", creationflags=NO_WINDOW)
     files = [p for p in media_files(folder) if p.suffix.lower() in AUDIO_EXT]
     if done.returncode == 0 and files:
@@ -580,7 +640,7 @@ def download_post(code, url, folder, cookies):
     the message is why it failed, or on success that Instagram left a slide out."""
     pages = folder / "pages"  # --write-pages writes to the working folder
     pages.mkdir(parents=True, exist_ok=True)
-    cmd = GALLERY_DL + ["--config-ignore", "--no-skip", "--write-pages", "--cookies-from-browser", f"firefox:{cookies}",
+    cmd = GALLERY_DL + ["--config-ignore", "--no-skip", "--write-pages"] + login_args(cookies) + [
                         "--sleep-request", "6-12", "--sleep-429", "120", "--retries", "1", "-D", str(folder),
                         "-f", "{post_shortcode}_{num}.{extension}", url]
     done = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", cwd=pages,
@@ -677,6 +737,8 @@ def keep_key_frames(folder, dest, cfg):
     videos = videos_in(folder)
     cap = int(vd_config.number("MAX_FRAMES", cast=float) if cfg is None else float(cfg.get("MAX_FRAMES") or 20))
     if videos:
+        if sum(key_frames.duration(v) for v in videos) > LONG_SECONDS:
+            cap = int(float(cfg.get("MAX_FRAMES_LONG") or 60))
         return key_frames.keep(videos, dest, threshold=float(cfg.get("SCENE_THRESHOLD") or 0.30),
                                every=float(cfg.get("FRAME_EVERY_SEC") or 3), cap=cap,
                                width=int(float(cfg.get("FRAME_WIDTH") or 1080)))
@@ -768,11 +830,14 @@ def add_screen_text(path, code, handle, meta, found):
     path.write_text("\n".join([text.rstrip(), "", SCREEN_HEAD] + lines) + "\n", encoding="utf-8")
 
 
-def cmd_transcribe(handle, picks_arg, limit, root=None):
+def cmd_transcribe(handle, picks_arg, limit, root=None, urls=None, login=True):
+    """urls ({id: link}) are links given with `run`: they are the picks, and their facts come from yt-dlp, not index.csv.
+    login=False reads a site other than Instagram: no Firefox login, and a refusal fails that link only."""
     root = root or home()
     root.mkdir(parents=True, exist_ok=True)
     tmp = clean_tmp(root)
-    picks = None if picks_arg is None else parse_picks(picks_arg)  # None is --all
+    urls = dict(urls or {})
+    picks = list(urls) if urls else None if picks_arg is None else parse_picks(picks_arg)  # None is --all
     archive = Archive(root / "archive.sqlite3")
     try:
         missing = screen_text_missing()
@@ -785,10 +850,11 @@ def cmd_transcribe(handle, picks_arg, limit, root=None):
         except ValueError as exc:
             log(f"{exc}; fix .env in {root}; 0 requests made")
             return EXIT_FAIL
-        cookies = copy_login(tmp)
-        if cookies is None:
+        cookies = copy_login(tmp) if login else None
+        if login and cookies is None:
             return fail("login", "no Instagram login in Firefox; 0 requests made")
         index = read_index(root / handle / "index.csv")
+        metas = {}
         statuses, screened = archive.statuses(), archive.screened()
         if picks is None:
             picks = still_to_read(index, statuses, screened, archive.failed())
@@ -804,9 +870,14 @@ def cmd_transcribe(handle, picks_arg, limit, root=None):
         for n, code in enumerate(todo):
             if n:
                 time.sleep(random.uniform(*PAUSE))
-            url = index.get(code, {}).get("url") or f"https://www.instagram.com/reel/{code}/"
+            url = urls.get(code) or index.get(code, {}).get("url") or f"https://www.instagram.com/reel/{code}/"
             is_post = index.get(code, {}).get("type") == "post"
             path, error = (download_post if is_post else download_audio)(code, url, tmp / code, cookies)
+            if not path and not is_post and urls and login and "/p/" in url and not classify(error):
+                shutil.rmtree(tmp / code, ignore_errors=True)  # a photo or carousel given as a link: no video to pull
+                path, error = download_post(code, url, tmp / code, cookies)
+                is_post = bool(path)
+            metas[code] = {**info_meta(tmp / code, code), **{k: v for k, v in index.get(code, {}).items() if v}}
             files = [path] if path and not is_post else sounds_in(path) if path else []
             if path and files is None:
                 path, error = None, "a video in it could not be read"
@@ -817,7 +888,7 @@ def cmd_transcribe(handle, picks_arg, limit, root=None):
                     listen[code] = files
                 log(f"fetched {n + 1}/{len(todo)}: {code}" + (f" ({error})" if error else ""))
                 continue
-            blocked = classify(error)
+            blocked = classify(error) if login else None
             if blocked:
                 log(f"{code}: {error.splitlines()[-1]}")
                 break  # no more Instagram requests; what is already here still gets transcribed
@@ -850,7 +921,7 @@ def cmd_transcribe(handle, picks_arg, limit, root=None):
                 continue
             body = spoken(code, files, [m.read_text(encoding="utf-8") for m in made])
             if body:
-                write_transcript(root / handle / "transcripts" / f"{code}.md", code, handle, index.get(code, {}), body)
+                write_transcript(root / handle / "transcripts" / f"{code}.md", code, handle, metas.get(code, {}), body)
                 try:
                     seconds = sum(key_frames.duration(f) for f in files)
                     note = reliability_note(body, seconds, float(cfg.get("MIN_WORDS_PER_MIN") or 40))
@@ -871,7 +942,7 @@ def cmd_transcribe(handle, picks_arg, limit, root=None):
                 failed.append(code)
                 log(f"{code}: its on-screen text could not be read")
                 continue
-            add_screen_text(root / handle / "transcripts" / f"{code}.md", code, handle, index.get(code, {}), found[code])
+            add_screen_text(root / handle / "transcripts" / f"{code}.md", code, handle, metas.get(code, {}), found[code])
             archive.mark_screen(handle, code, datetime.now(timezone.utc))
 
         for code in fetched:  # the frames Claude looks at, before the media is deleted
@@ -904,6 +975,23 @@ def cmd_transcribe(handle, picks_arg, limit, root=None):
     finally:
         archive.close()
         clean_tmp(root)  # also when something above raised: no cookies or audio stay behind
+
+
+def cmd_run(value, limit, root=None):
+    """Links, grouped by site. Instagram goes first, with the login; a wall or rate limit there (exit 3, 4) stops the
+    remaining Instagram links but never the other sites. The worst exit code is returned."""
+    root = root or home()
+    groups = {}
+    for folder, code, url in parse_links(value):
+        groups.setdefault(folder, {})[code] = url
+    if not groups:
+        log("no links given")
+        return EXIT_FAIL
+    worst = 0
+    for folder in sorted(groups, key=lambda f: f != "instagram"):
+        log(f"{folder}: {len(groups[folder])} link(s)")
+        worst = max(worst, cmd_transcribe(folder, None, limit, root, urls=groups[folder], login=folder == "instagram"))
+    return worst
 
 
 @contextmanager
@@ -958,9 +1046,15 @@ def main(argv=None):
     which.add_argument("--picks", help="a file, or comma-separated shortcodes; a code starting with - needs --picks=<code>")
     p.add_argument("--max", type=int, default=30, help="most reels per run (default 30); the rest wait for the next run")
     p = sub.add_parser("drop-frames", help="delete the kept frames of every reel that already has its card")
-    p.add_argument("--handle", required=True)
+    p.add_argument("--handle", required=True, help="a creator, or instagram, youtube, tiktok, web for links")
+    p = sub.add_parser("run", help="read a list of links: Instagram, YouTube, TikTok or anything yt-dlp downloads")
+    p.add_argument("--urls", required=True, help="a file with one link per line, or links split by spaces or commas")
+    p.add_argument("--max", type=int, default=30, help="most links per site per run (default 30)")
     a = ap.parse_args(argv)
     try:
+        if a.cmd == "run":
+            with one_at_a_time(home()):
+                return cmd_run(a.urls, a.max)
         handle = check_handle(a.handle)
         with one_at_a_time(home()):
             if a.cmd == "list":

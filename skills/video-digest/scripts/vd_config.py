@@ -12,6 +12,7 @@ DEFAULTS = {
     "SCENE_THRESHOLD": "0.30",         # how big a picture change counts as a new scene
     "FRAME_EVERY_SEC": "3",            # a coverage frame this often, even when nothing changes
     "MAX_FRAMES": "20",                # frames kept per reel for Claude to look at
+    "MAX_FRAMES_LONG": "60",           # frames kept for a video over 10 minutes (YouTube and the like)
     "FRAME_WIDTH": "1080",             # small on-screen text stays readable at full reel width
     "MIN_WORDS_PER_MIN": "40",         # below this, a transcript is labelled unreliable
     "BRAIN_PATH": "",                  # the Topics folder inside the vault, e.g. C:/Users/<you>/Documents/Brain/Topics

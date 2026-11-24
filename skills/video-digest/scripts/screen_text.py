@@ -21,12 +21,15 @@ from pathlib import Path
 
 PIN = "rapidocr==3.10.0"
 EVERY = 2            # seconds between frames: a tool's name is often on screen for only a few seconds
+LONG_EVERY = 10      # for a video over LONG_SECONDS: an hour at 2 s would be 1,800 frames to read
+LONG_SECONDS = 600
 WIDTH = 720
 MIN_SCORE = 0.7      # below this the lines were mostly noise from faces and backgrounds
 THREADS = 2          # leaves the rest of the CPU free for other work
 VIDEO_EXT = {".mp4", ".m4v", ".webm", ".mkv", ".mov"}
 IMAGE_EXT = {".jpg", ".jpeg", ".png", ".webp"}
 SOUND_EXT = {".m4a", ".mp3", ".aac", ".opus", ".ogg", ".oga", ".wav", ".flac"}
+SKIP_EXT = {".json"}  # yt-dlp's info file about a link, kept beside the video
 
 
 def engine():
@@ -36,11 +39,25 @@ def engine():
                             "Global.log_level": "error"})
 
 
-def frames(video, folder):
+def length(video):
+    """Seconds of video, or 0 when ffprobe cannot tell."""
+    done = subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(video)],
+                          capture_output=True, text=True, encoding="utf-8", errors="replace")
+    try:
+        return float(done.stdout.strip())
+    except ValueError:
+        return 0.0
+
+
+def step(video):
+    return LONG_EVERY if length(video) > LONG_SECONDS else EVERY
+
+
+def frames(video, folder, every=EVERY):
     """Frames of one video into its own folder, relative pattern so that no '%' in a path can reach ffmpeg."""
     folder.mkdir(parents=True, exist_ok=True)
     subprocess.check_call(["ffmpeg", "-y", "-loglevel", "error", "-i", str(video.resolve()), "-vf",
-                           f"fps=1/{EVERY},scale={WIDTH}:-2", "-q:v", "4", "frame_%05d.jpg"], cwd=str(folder))
+                           f"fps=1/{every},scale={WIDTH}:-2", "-q:v", "4", "frame_%05d.jpg"], cwd=str(folder))
     return sorted(folder.glob("frame_*.jpg"))
 
 
@@ -74,7 +91,7 @@ def read_folder(ocr, folder):
                 seen.add(k)
                 found.append([label, line])
 
-    files = [p for p in folder.iterdir() if p.is_file() and p.suffix.lower() not in SOUND_EXT]
+    files = [p for p in folder.iterdir() if p.is_file() and p.suffix.lower() not in SOUND_EXT | SKIP_EXT]
     readable = [p for p in files if p.suffix.lower() in IMAGE_EXT | VIDEO_EXT]
     if len(readable) < len(files):  # a slide this cannot read must not pass for a slide with no text
         raise ValueError(f"cannot read {sorted(p.name for p in files if p not in readable)}")
@@ -83,8 +100,9 @@ def read_folder(ocr, folder):
         if path.suffix.lower() in IMAGE_EXT:
             add(f"slide {slide or 1}", path)
             continue
-        for n, image in enumerate(frames(path, folder / f"frames_{path.stem}")):
-            add(f"slide {slide} {mmss(n * EVERY)}" if slide else mmss(n * EVERY), image)
+        every = step(path)
+        for n, image in enumerate(frames(path, folder / f"frames_{path.stem}", every)):
+            add(f"slide {slide} {mmss(n * every)}" if slide else mmss(n * every), image)
     return found
 
 
