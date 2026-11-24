@@ -1,0 +1,6 @@
+# Tested versions (22 Nov 2026, Python 3.13, Windows 11).
+# yt-dlp and gallery-dl fix Instagram changes often: if listing or downloading breaks, update these first.
+gallery-dl==1.32.19
+yt-dlp==2026.10.26
+rapidocr==3.10.0
+# media-digest installs sherpa-onnx and numpy by itself on its first run, and downloads ~1 GB of speech models once.

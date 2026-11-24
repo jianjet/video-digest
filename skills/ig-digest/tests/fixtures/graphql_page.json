@@ -1,0 +1,17 @@
+{
+ "data": {
+  "xdt_api__v1__feed__user_timeline_graphql_connection": {
+   "edges": [
+    {
+     "node": {
+      "code": "FIXTURE0001",
+      "comment_count": 7,
+      "like_count": 10,
+      "view_count": null,
+      "product_type": "clips"
+     }
+    }
+   ]
+  }
+ }
+}

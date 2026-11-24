@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+.tmp/
+*.sqlite3
+.env
+# personal files: they live in ~/video-digest, never in the repo
+goals.md
+creators.txt
+playbook.md
+tools.csv
+digests/
+weekly/
+frames/
+proposals/
+brain-index.json
+.env.*
+!.env.example
