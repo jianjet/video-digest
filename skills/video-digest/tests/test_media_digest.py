@@ -1,6 +1,6 @@
 """Tests for media_digest.py frames: scene changes, near-duplicates, the cap, cue frames, hours.
 
-    python -m unittest discover -s skills/media-digest/tests -v
+    python -m unittest discover -s skills/video-digest/tests -v
 
 Clips are made with ffmpeg lavfi in a temp folder when the suite starts (no recordings, no binary fixtures, no network).
 The speech step is patched out; the frame code runs against the real ffmpeg, which the suite requires.

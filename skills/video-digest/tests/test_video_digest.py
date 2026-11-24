@@ -13,9 +13,11 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import brain  # noqa: E402
-import ig_digest as ig  # noqa: E402
+import video_digest as ig  # noqa: E402
 import key_frames  # noqa: E402
 import vd_config  # noqa: E402
+
+vd_config.REPO_ENV = None  # the developer's own .env must not change test results
 
 
 class Config(unittest.TestCase):
@@ -40,6 +42,18 @@ class Config(unittest.TestCase):
         self.assertEqual(vd_config.load(self.root)["MAX_FRAMES"], "12")
         os.environ["ASR_ENGINE"] = "sensevoice"
         self.assertEqual(vd_config.engine(self.root), "sensevoice")
+
+    def test_the_repo_env_is_read_and_the_output_folder_overrides_it(self):
+        repo_env = self.root / "repo.env"
+        repo_env.write_text("ASR_ENGINE=qwen3\nMAX_FRAMES=9\n", encoding="utf-8")
+        with mock.patch.object(vd_config, "REPO_ENV", repo_env):
+            self.assertEqual(vd_config.load(self.root)["ASR_ENGINE"], "qwen3")
+            (self.root / ".env").write_text("MAX_FRAMES=12\n", encoding="utf-8")
+            cfg = vd_config.load(self.root)
+            self.assertEqual((cfg["ASR_ENGINE"], cfg["MAX_FRAMES"]), ("qwen3", "12"))
+
+    def test_the_repo_env_sits_at_the_repo_root(self):
+        self.assertTrue((Path(vd_config.__file__).resolve().parents[3] / ".env.example").exists())
 
     def test_a_wrong_engine_is_refused(self):
         (self.root / ".env").write_text("ASR_ENGINE=whisper\n", encoding="utf-8")

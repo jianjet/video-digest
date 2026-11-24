@@ -1,6 +1,6 @@
-# My goals for ig-digest
+# My goals for video-digest
 
-Copy this file to `~/ig-digest/goals.md` and fill it in (or let Claude ask you on the first run).
+Copy this file to `~/video-digest/goals.md` and fill it in (or let Claude ask you on the first run).
 Every verdict ("use", "learn", "skip") is judged against these goals, not against the creator's hype.
 This file is personal: it never goes into the repo.
 

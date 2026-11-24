@@ -16,7 +16,7 @@ The script reads the Firefox login cookie, so these parts get a line-by-line rev
 Say it in the pull request when your change touches one of these. A change that sends the cookie or the output anywhere won't be merged.
 
 ## Never commit
-- Anything from the output folder (`~/ig-digest`): transcripts, cards, `tools.csv`, digests. It's other people's content.
+- Anything from the output folder (`~/video-digest`): transcripts, cards, `tools.csv`, digests. It's other people's content.
 - Your `goals.md`, `creators.txt`, account names, passwords, cookies or `.env` files.
 
 ## Never add

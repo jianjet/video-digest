@@ -1,6 +1,6 @@
 # video-digest
 
-A Claude Code skill that reads Instagram creators for you, so you don't have to watch their reels. Forked from **ig-digest** v1.4 by its author (used with permission), with ideas from claude-watch. Instagram only for now; YouTube and long videos later.
+One Claude Code skill that reads Instagram creators for you, so you don't have to watch their reels, and turns any recording on your computer into text. Instagram for now; YouTube and long videos later.
 
 **In:** a list of creator handles.
 **Out:**
@@ -10,7 +10,7 @@ A Claude Code skill that reads Instagram creators for you, so you don't have to 
 - a **learn / later / no** verdict for every method, judged against your own goals,
 - **Brain notes:** each worthwhile tool or method is proposed as a merge into an existing note in your Obsidian vault (or a new topic), sent to Telegram through n8n, and committed to the vault's GitHub repo only when you tap Approve.
 
-New over ig-digest: key frames (every scene change plus regular coverage) that Claude looks at; speech engine switchable in `.env` (`ASR_ENGINE=sensevoice|qwen3`); weak transcripts labelled `may be unreliable`.
+New in 2.0: key frames (every scene change plus regular coverage) that Claude looks at; speech engine switchable in `.env` (`ASR_ENGINE=sensevoice|qwen3`); weak transcripts labelled `may be unreliable`.
 
 Weekly reruns read only what's new.
 
@@ -22,8 +22,7 @@ Weekly reruns read only what's new.
 ## What's inside
 | Folder | What it does |
 |---|---|
-| `skills/ig-digest` | Lists creators' posts, downloads them one at a time, keeps only the text, then Claude writes the cards and verdicts |
-| `skills/media-digest` | Offline speech-to-text and screen frames, used by ig-digest; also works on its own for any recording |
+| `skills/video-digest` | The whole skill: lists creators' posts, downloads them one at a time, speech-to-text, on-screen text and key frames, then Claude writes the cards, verdicts and Brain proposals. Also transcribes any recording on your computer |
 
 ## Safety in one look
 - Runs on your own Windows computer, through a **spare** Instagram account logged into Firefox.
@@ -31,6 +30,10 @@ Weekly reruns read only what's new.
 - One request at a time, 6 to 12 seconds apart. A login wall or rate limit stops everything.
 - Only text and key frames are kept; frames are deleted once their card exists. Media is deleted after reading. Nothing from the output folder is ever committed.
 - Captions and transcripts are treated as data, never as instructions to Claude.
+
+## Credits
+- **justyk99:** wrote ig-digest and media-digest, which video-digest is built on (the Instagram listing and reading, speech-to-text, on-screen text, weekly mode, tests).
+- Ideas from claude-watch: Claude looks at key frames.
 
 ## Built on
 gallery-dl (GPL-2.0) and yt-dlp (Unlicense), run as separate programs · sherpa-onnx with SenseVoice (Apache-2.0) · RapidOCR (Apache-2.0) · ffmpeg.

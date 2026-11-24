@@ -1,7 +1,8 @@
-"""vd_config.py - video-digest settings: real environment variables first, then the .env file in the output folder.
+"""vd_config.py - video-digest settings: real environment variables, then <output folder>/.env, then <repo>/.env.
 
-The .env file lives in the output folder (VIDEO_DIGEST_HOME, else IG_DIGEST_HOME, else ~/video-digest), never in the
-repo, because it holds the webhook secret. A value already set in the environment always wins over the file.
+The usual place is the repo root (beside .env.example); .gitignore keeps it out of git, because it holds the webhook
+secret. A .env in the output folder (VIDEO_DIGEST_HOME, else IG_DIGEST_HOME, else ~/video-digest) overrides it, and a
+value already set in the environment always wins.
 """
 import os
 from pathlib import Path
@@ -18,6 +19,7 @@ DEFAULTS = {
     "IGDIGEST_SECRET": "",             # the X-IGD-Secret header value
 }
 ENGINES = ("sensevoice", "qwen3")
+REPO_ENV = Path(__file__).resolve().parents[3] / ".env"  # scripts -> video-digest -> skills -> repo root; tests set None
 
 
 def home():
@@ -47,9 +49,10 @@ def read_env_file(path):
 
 
 def load(root=None):
-    """All settings as strings: environment > root/.env > defaults."""
+    """All settings as strings: environment > root/.env > repo .env > defaults."""
     root = Path(root) if root else home()
-    merged = {**DEFAULTS, **read_env_file(root / ".env")}
+    repo = read_env_file(REPO_ENV) if REPO_ENV else {}
+    merged = {**DEFAULTS, **repo, **read_env_file(root / ".env")}
     for key in set(merged) | set(DEFAULTS):
         if os.environ.get(key):
             merged[key] = os.environ[key]

@@ -13,33 +13,30 @@
 
 ## 2. Get the code
 1. Accept the GitHub invite (email, or github.com/notifications).
-2. Clone the repo, for example into `C:\dev\ig-digest`:
-   ```powershell
-   git clone https://github.com/justyk99/ig-digest C:\dev\ig-digest
+2. Clone the repo, for example into `%USERPROFILE%\Documents\video-digest` (cmd):
+   ```
+   git clone https://github.com/jianjet/video-digest %USERPROFILE%\Documents\video-digest
    ```
    Work on your own branches, never on `main` (CONTRIBUTING.md).
 
 ## 3. Install
-```powershell
-python -m pip install -r C:\dev\ig-digest\requirements.txt
 ```
-Then link both skills into Claude Code. A junction (a folder shortcut) needs no admin rights, and your edits in the repo work straight away:
-```powershell
-New-Item -ItemType Junction -Path "$env:USERPROFILE\.claude\skills\ig-digest" -Target "C:\dev\ig-digest\skills\ig-digest"
-New-Item -ItemType Junction -Path "$env:USERPROFILE\.claude\skills\media-digest" -Target "C:\dev\ig-digest\skills\media-digest"
+python -m pip install -r %USERPROFILE%\Documents\video-digest\requirements.txt
 ```
-ig-digest needs media-digest next to it: it does the speech-to-text.
+Then link the skill into Claude Code. A junction (a folder shortcut) needs no admin rights, and your edits in the repo work straight away:
+```
+mklink /J "%USERPROFILE%\.claude\skills\video-digest" "%USERPROFILE%\Documents\video-digest\skills\video-digest"
+```
 
 ## 4. Check it works (no internet needed)
-```powershell
-cd C:\dev\ig-digest
-python -m unittest discover -s skills/ig-digest/tests
-python -m unittest discover -s skills/media-digest/tests
 ```
-Both should end with `OK`.
+cd %USERPROFILE%\Documents\video-digest
+python -m unittest discover -s skills/video-digest/tests
+```
+It should end with `OK`.
 
 ## 5. Settings
-Copy `.env.example` to `%USERPROFILE%\video-digest\.env` and fill it in. `IGDIGEST_SECRET` must match the Header Auth credential on the n8n webhook. Never commit or paste this file.
+Copy `.env.example` to `.env` in the same folder (the repo root) and fill it in. `.gitignore` keeps it out of git. `IGDIGEST_SECRET` must match the Header Auth credential on the n8n webhook. Never commit or paste this file.
 
 ## 5b. Log in
 Open Firefox and log into Instagram with the **spare** account. That's all. The script reads a copy of Firefox's login. It never asks for a password and never logs in by itself.
@@ -47,14 +44,14 @@ Open Firefox and log into Instagram with the **spare** account. That's all. The 
 ## 6. First run
 In Claude Code, from any folder:
 ```text
-/ig-digest <creator handle>
+/video-digest <creator handle>
 ```
-- On the first run Claude asks about your goals and writes `~/ig-digest/goals.md` (the shape is in `goals.example.md`).
+- On the first run Claude asks about your goals and writes `~/video-digest/goals.md` (the shape is in `goals.example.md`).
 - The first speech-to-text downloads about 1 GB of models once.
 - Everything it makes goes to `~/video-digest/`. Set `VIDEO_DIGEST_HOME` to use another folder.
 
 ## 7. Optional: weekly by itself
-SKILL.md, section "Weekly mode", has the Task Scheduler command (Sundays 09:00) and a session-start line that tells you when new posts are waiting. Put the creators in `~/ig-digest/creators.txt`, one handle per line.
+SKILL.md, section "Weekly mode", has the Task Scheduler command (Sundays 09:00) and a session-start line that tells you when new posts are waiting. Put the creators in `~/video-digest/creators.txt`, one handle per line.
 
 ## Rules that keep the account alive
 - Spare account only. No scripted login.

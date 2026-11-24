@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""screen_text.py - the words on screen in downloaded reels and posts, read on this machine. ig_digest.py runs it.
+"""screen_text.py - the words on screen in downloaded reels and posts, read on this machine. video_digest.py runs it.
 
     python screen_text.py --check
     python screen_text.py <result.json> <folder> [<folder> ...]
 
 One folder per post, named after its shortcode. A video gives one frame every EVERY seconds. A post's files are named
 <code>_<slide>. The result is {shortcode: [[label, text], ...]} with labels such as "00:04", "slide 2" or "slide 3 00:04",
-each line once, in order. A folder that breaks, or holds a file none of this can read, gets no entry, so ig_digest.py comes back.
+each line once, in order. A folder that breaks, or holds a file none of this can read, gets no entry, so video_digest.py comes back.
 
 RapidOCR (Apache-2.0) is pinned because its models ship inside the wheel, so nothing is downloaded at run time.
 The text costs no tokens. Sonnet reading the same frames was the other choice, at roughly 1,500 tokens a frame.

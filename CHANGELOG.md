@@ -4,7 +4,8 @@ One line per change, newest first. Pull requests add their line under **Unreleas
 
 ## Unreleased
 
-## 2.0.0 (2026-11-24): video-digest
+## 2.0.0 (2026-11-25): video-digest
+- ig-digest and media-digest merged into one skill, `skills/video-digest`; `ig_digest.py` renamed `video_digest.py`. Built on justyk99's ig-digest 1.4 and media-digest 1.1.
 - Renamed the project video-digest; output folder `~/video-digest` (`VIDEO_DIGEST_HOME`; `IG_DIGEST_HOME` still works).
 - Settings in `.env` (`vd_config.py`, template `.env.example`); `ASR_ENGINE` switches speech-to-text between sensevoice and qwen3.
 - Key frames per reel (`key_frames.py`): scene changes plus one every few seconds, capped; Claude looks at them for the cards. `drop-frames` deletes them once the card exists.
