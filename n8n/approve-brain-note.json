@@ -1,0 +1,126 @@
+{
+  "name": "video-digest – Approve Brain Note",
+  "settings": { "executionOrder": "v1" },
+  "nodes": [
+    {
+      "id": "05833c90-26d9-4426-acb5-16e9017f92bb", "name": "Receive Proposal", "type": "n8n-nodes-base.webhook", "typeVersion": 2.2, "position": [0, 224],
+      "parameters": { "httpMethod": "POST", "path": "video-digest/propose", "authentication": "headerAuth", "responseMode": "onReceived", "options": {} },
+      "webhookId": "9d9c0a12-aab7-41b7-a1b8-e9481711f6ca"
+    },
+    {
+      "id": "4bf45266-6fad-4b7c-bb60-4dc354747378", "name": "Normalize Proposal", "type": "n8n-nodes-base.set", "typeVersion": 3.5, "position": [272, 224],
+      "parameters": { "mode": "manual", "includeOtherFields": false, "assignments": { "assignments": [
+        { "id": "id", "name": "id", "value": "={{ $json.body.id }}", "type": "string" },
+        { "id": "action", "name": "action", "value": "={{ $json.body.action }}", "type": "string" },
+        { "id": "path", "name": "path", "value": "={{ $json.body.path }}", "type": "string" },
+        { "id": "area", "name": "area", "value": "={{ ($json.body.path || '').split('/').length > 2 ? $json.body.path.split('/')[1] : '(top)' }}", "type": "string" },
+        { "id": "base_sha", "name": "base_sha", "value": "={{ $json.body.base_sha || '' }}", "type": "string" },
+        { "id": "title", "name": "title", "value": "={{ $json.body.title }}", "type": "string" },
+        { "id": "summary", "name": "summary", "value": "={{ $json.body.summary }}", "type": "string" },
+        { "id": "content", "name": "content", "value": "={{ $json.body.content }}", "type": "string" },
+        { "id": "sources", "name": "sources", "value": "={{ $json.body.sources || [] }}", "type": "array" }
+      ] } }
+    },
+    {
+      "id": "636b493c-3bb8-4469-a0c1-b6983393e991", "name": "Ask for Approval", "type": "n8n-nodes-base.telegram", "typeVersion": 1.2, "position": [496, 224],
+      "parameters": { "resource": "message", "operation": "sendAndWait", "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "message": "=🧠 {{ $json.action === 'create' ? 'New note' : 'Update' }}: {{ $json.title }}\n{{ $json.path }}\n\n{{ $json.summary }}\n\nSources:\n{{ ($json.sources || []).join('\\n') }}",
+        "responseType": "approval", "approvalOptions": { "values": { "approvalType": "double", "approveLabel": "✅ Approve", "disapproveLabel": "❌ Reject" } },
+        "options": { "appendAttribution": false } },
+      "webhookId": "e8c36035-efca-4fcd-954a-a3c29f940ba1"
+    },
+    {
+      "id": "e6e5526f-9d46-4c48-92e0-42533547c6a0", "name": "Approved?", "type": "n8n-nodes-base.if", "typeVersion": 2.2, "position": [720, 224],
+      "parameters": { "conditions": { "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+        "conditions": [ { "leftValue": "={{ $json.data.approved }}", "operator": { "type": "boolean", "operation": "true", "singleValue": true }, "rightValue": "" } ],
+        "combinator": "and" } }
+    },
+    {
+      "id": "93da8ee0-4d04-476d-812b-8aa4a6162562", "name": "Get Current File", "type": "n8n-nodes-base.github", "typeVersion": 1.1, "position": [944, 320],
+      "parameters": { "resource": "file", "operation": "get", "authentication": "accessToken",
+        "owner": { "__rl": true, "mode": "name", "value": "jianjet" }, "repository": { "__rl": true, "mode": "name", "value": "brain" },
+        "filePath": "={{ $('Normalize Proposal').item.json.path }}", "asBinaryProperty": false },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "db452b77-7696-499f-bb7e-aada65a285fe", "name": "Check Freshness", "type": "n8n-nodes-base.set", "typeVersion": 3.5, "position": [1168, 320],
+      "parameters": { "mode": "manual", "includeOtherFields": false, "assignments": { "assignments": [
+        { "id": "current_sha", "name": "current_sha", "value": "={{ $json.sha || '' }}", "type": "string" },
+        { "id": "state", "name": "state", "value": "={{ $('Normalize Proposal').item.json.action === 'update' ? (($json.sha || '') === $('Normalize Proposal').item.json.base_sha ? 'update' : 'stale') : ($json.sha ? 'stale' : 'create') }}", "type": "string" }
+      ] } }
+    },
+    {
+      "id": "f66c959f-7aef-4ffd-9136-b833b715fdbc", "name": "Route Write", "type": "n8n-nodes-base.switch", "typeVersion": 3.2, "position": [1392, 320],
+      "parameters": { "mode": "rules", "rules": { "values": [
+        { "outputKey": "stale", "renameOutput": true, "conditions": { "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" }, "conditions": [ { "leftValue": "={{ $json.state }}", "operator": { "type": "string", "operation": "equals" }, "rightValue": "stale" } ], "combinator": "and" } },
+        { "outputKey": "update", "renameOutput": true, "conditions": { "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" }, "conditions": [ { "leftValue": "={{ $json.state }}", "operator": { "type": "string", "operation": "equals" }, "rightValue": "update" } ], "combinator": "and" } },
+        { "outputKey": "create", "renameOutput": true, "conditions": { "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "strict" }, "conditions": [ { "leftValue": "={{ $json.state }}", "operator": { "type": "string", "operation": "equals" }, "rightValue": "create" } ], "combinator": "and" } }
+      ] } }
+    },
+    {
+      "id": "d95ad310-3602-4a11-98e6-acc0c20a5e8d", "name": "Notify Stale", "type": "n8n-nodes-base.telegram", "typeVersion": 1.2, "position": [1616, 128],
+      "parameters": { "resource": "message", "operation": "sendMessage", "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=⚠️ Not saved, the note changed since the proposal: {{ $('Normalize Proposal').item.json.path }}\nRerun brain.py index and redo this proposal.",
+        "additionalFields": { "appendAttribution": false, "parse_mode": "HTML" } }
+    },
+    {
+      "id": "105107e1-fbff-45a0-b1b4-d45aeeba61fc", "name": "Update Topic Note", "type": "n8n-nodes-base.github", "typeVersion": 1.1, "position": [1616, 320],
+      "parameters": { "resource": "file", "operation": "edit", "authentication": "accessToken",
+        "owner": { "__rl": true, "mode": "name", "value": "jianjet" }, "repository": { "__rl": true, "mode": "name", "value": "brain" },
+        "filePath": "={{ $('Normalize Proposal').item.json.path }}", "binaryData": false,
+        "fileContent": "={{ $('Normalize Proposal').item.json.content }}",
+        "commitMessage": "=video-digest: update {{ $('Normalize Proposal').item.json.title }}" }
+    },
+    {
+      "id": "91ed17dc-cbe9-41f4-a6d4-201d7f45f4b4", "name": "Create Topic Note", "type": "n8n-nodes-base.github", "typeVersion": 1.1, "position": [1616, 512],
+      "parameters": { "resource": "file", "operation": "create", "authentication": "accessToken",
+        "owner": { "__rl": true, "mode": "name", "value": "jianjet" }, "repository": { "__rl": true, "mode": "name", "value": "brain" },
+        "filePath": "={{ $('Normalize Proposal').item.json.path }}", "binaryData": false,
+        "fileContent": "={{ $('Normalize Proposal').item.json.content }}",
+        "commitMessage": "=video-digest: new note {{ $('Normalize Proposal').item.json.title }}" }
+    },
+    {
+      "id": "e8c66e24-8268-4d49-b4f3-2a5f3b6dc951", "name": "Log Approve", "type": "n8n-nodes-base.github", "typeVersion": 1.1, "position": [1840, 416],
+      "parameters": { "resource": "file", "operation": "create", "authentication": "accessToken",
+        "owner": { "__rl": true, "mode": "name", "value": "jianjet" }, "repository": { "__rl": true, "mode": "name", "value": "brain" },
+        "filePath": "=video-digest/choices/{{ $('Normalize Proposal').item.json.id }}-{{ $now.toMillis() }}.json", "binaryData": false,
+        "fileContent": "={{ JSON.stringify({ at: $now.toISO(), decision: 'approve', path: $('Normalize Proposal').item.json.path, area: $('Normalize Proposal').item.json.area, title: $('Normalize Proposal').item.json.title, summary: $('Normalize Proposal').item.json.summary, sources: $('Normalize Proposal').item.json.sources }, null, 1) }}",
+        "commitMessage": "=video-digest: approved {{ $('Normalize Proposal').item.json.title }}" },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "59ccae2a-d66b-407b-a463-326d4582516a", "name": "Notify Saved", "type": "n8n-nodes-base.telegram", "typeVersion": 1.2, "position": [2064, 416],
+      "parameters": { "resource": "message", "operation": "sendMessage", "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=✅ Saved to the Brain: {{ $('Normalize Proposal').item.json.path }}",
+        "additionalFields": { "appendAttribution": false, "parse_mode": "HTML" } }
+    },
+    {
+      "id": "8376ef7c-55c7-4cbb-9f8c-14ba58374f73", "name": "Log Reject", "type": "n8n-nodes-base.github", "typeVersion": 1.1, "position": [944, 720],
+      "parameters": { "resource": "file", "operation": "create", "authentication": "accessToken",
+        "owner": { "__rl": true, "mode": "name", "value": "jianjet" }, "repository": { "__rl": true, "mode": "name", "value": "brain" },
+        "filePath": "=video-digest/choices/{{ $('Normalize Proposal').item.json.id }}-{{ $now.toMillis() }}.json", "binaryData": false,
+        "fileContent": "={{ JSON.stringify({ at: $now.toISO(), decision: 'reject', path: $('Normalize Proposal').item.json.path, area: $('Normalize Proposal').item.json.area, title: $('Normalize Proposal').item.json.title, summary: $('Normalize Proposal').item.json.summary, sources: $('Normalize Proposal').item.json.sources }, null, 1) }}",
+        "commitMessage": "=video-digest: rejected {{ $('Normalize Proposal').item.json.title }}" },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "499a8020-b5ca-4999-a34d-cfec690f320d", "name": "Notify Not Saved", "type": "n8n-nodes-base.telegram", "typeVersion": 1.2, "position": [1168, 720],
+      "parameters": { "resource": "message", "operation": "sendMessage", "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=❌ Not saved: {{ $('Normalize Proposal').item.json.title }}. Noted, similar topics will rank lower next time.",
+        "additionalFields": { "appendAttribution": false, "parse_mode": "HTML" } }
+    }
+  ],
+  "connections": {
+    "Receive Proposal": { "main": [ [ { "node": "Normalize Proposal", "type": "main", "index": 0 } ] ] },
+    "Normalize Proposal": { "main": [ [ { "node": "Ask for Approval", "type": "main", "index": 0 } ] ] },
+    "Ask for Approval": { "main": [ [ { "node": "Approved?", "type": "main", "index": 0 } ] ] },
+    "Approved?": { "main": [ [ { "node": "Get Current File", "type": "main", "index": 0 } ], [ { "node": "Log Reject", "type": "main", "index": 0 } ] ] },
+    "Get Current File": { "main": [ [ { "node": "Check Freshness", "type": "main", "index": 0 } ] ] },
+    "Check Freshness": { "main": [ [ { "node": "Route Write", "type": "main", "index": 0 } ] ] },
+    "Route Write": { "main": [ [ { "node": "Notify Stale", "type": "main", "index": 0 } ], [ { "node": "Update Topic Note", "type": "main", "index": 0 } ], [ { "node": "Create Topic Note", "type": "main", "index": 0 } ] ] },
+    "Update Topic Note": { "main": [ [ { "node": "Log Approve", "type": "main", "index": 0 } ] ] },
+    "Create Topic Note": { "main": [ [ { "node": "Log Approve", "type": "main", "index": 0 } ] ] },
+    "Log Approve": { "main": [ [ { "node": "Notify Saved", "type": "main", "index": 0 } ] ] },
+    "Log Reject": { "main": [ [ { "node": "Notify Not Saved", "type": "main", "index": 0 } ] ] }
+  }
+}
