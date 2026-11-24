@@ -3,4 +3,5 @@
 gallery-dl==1.32.19
 yt-dlp==2026.10.26
 rapidocr==3.10.0
+onnxruntime==1.32.0  # rapidocr's engine: rapidocr does not install it
 # media_digest.py installs sherpa-onnx and numpy by itself on its first run, and downloads ~1 GB of speech models once.

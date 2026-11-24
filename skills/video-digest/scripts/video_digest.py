@@ -785,7 +785,10 @@ def run_screen_text(folders, result):
     proc.stdout.close()
     if proc.wait():
         log(f"screen_text exited {proc.returncode}: {' | '.join(s.strip() for s in tail)}")
-    return json.loads(result.read_text(encoding="utf-8")) if result.exists() else {}
+    found = json.loads(result.read_text(encoding="utf-8")) if result.exists() else {}
+    if len(found) < len(folders) and tail:  # a folder that broke says why on screen_text's output: show it
+        log(f"screen_text said: {' | '.join(s.strip() for s in tail)}")
+    return found
 
 
 def screen_text_missing():

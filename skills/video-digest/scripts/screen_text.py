@@ -116,6 +116,11 @@ def main(argv):
         except ImportError:
             print(f"pip install {PIN}")
             return 1
+        try:
+            import onnxruntime  # noqa: F401  rapidocr's engine; its wheel does not pull it in
+        except ImportError:
+            print("pip install onnxruntime")
+            return 1
         return 0
     for name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS"):
         os.environ[name] = str(THREADS)
