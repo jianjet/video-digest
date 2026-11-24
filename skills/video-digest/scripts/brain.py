@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """brain.py - the bridge between video-digest and the Brain (an Obsidian vault kept in a git repo).
 
-    python brain.py index                     pull the vault, then list every topic note as JSON for Claude
+    python brain.py index                     pull the vault, then list every topic note, and the tally of Jet's
+                                              Approve / Reject choices, as JSON for Claude
     python brain.py propose <file.json> ...   check each proposal and send it to n8n for Telegram approval
     python brain.py propose --dry-run <file>  check and print, send nothing
 
@@ -12,6 +13,10 @@ A proposal file (Claude writes it):
     {"action": "create" | "update", "path": "Topics/<area>/<slug>.md", "title": "...",
      "summary": "3-6 short lines for Telegram", "content": "the whole note as it should read",
      "sources": ["https://www.instagram.com/reel/XXXX/ @ 01:23"], "id": "optional"}
+n8n saves every Approve or Reject as video-digest/choices/<id>.json in the vault repo:
+    {"at": "...", "decision": "approve" | "reject", "path": "Topics/<area>/<slug>.md", "title": "...", "summary": "..."}
+index tallies them per area and per note, so a run can rank what Jet rejected before lower (never drop it).
+
 base_sha is added here from the local file (git's blob hash, the same value GitHub reports), so n8n can refuse a
 proposal whose note changed after it was written.
 """
@@ -33,6 +38,9 @@ MAX_CONTENT = 200_000
 MAX_SUMMARY = 1500
 MAX_TITLE = 120
 ACTIONS = ("create", "update")
+CHOICES_DIR = "video-digest/choices"
+DECISIONS = ("approve", "reject")
+RECENT = 40
 
 
 class ProposalError(ValueError):
@@ -84,6 +92,31 @@ def describe(text):
     return ""
 
 
+def choices(repo, topics_rel="Topics"):
+    """Jet's Telegram decisions, read from the repo: counts per area and per note, the latest few with their titles, and
+    a warning per file that could not be read (it is skipped, never fatal)."""
+    folder = Path(repo) / CHOICES_DIR
+    areas, notes, recent, warnings = {}, {}, [], []
+    prefix = topics_rel.rstrip("/") + "/"
+    for f in sorted(folder.glob("*.json")) if folder.is_dir() else []:
+        try:
+            c = json.loads(f.read_text(encoding="utf-8"))
+            decision = str(c.get("decision", "")).lower() if isinstance(c, dict) else ""
+            path = str(c.get("path", "")) if isinstance(c, dict) else ""
+            if decision not in DECISIONS or not path:
+                raise ValueError("needs decision approve or reject, and a path")
+        except (OSError, ValueError) as exc:
+            warnings.append(f"{f.name}: {exc}")
+            continue
+        rest = path[len(prefix):] if path.startswith(prefix) else ""
+        area = rest.split("/")[0] if "/" in rest else "(top)"
+        for bucket, key in ((areas, area), (notes, path)):
+            bucket.setdefault(key, {"approve": 0, "reject": 0})[decision] += 1
+        recent.append({"at": str(c.get("at", "")), "decision": decision, "path": path, "title": str(c.get("title", ""))})
+    recent.sort(key=lambda r: r["at"], reverse=True)
+    return {"areas": areas, "notes": notes, "recent": recent[:RECENT], "warnings": warnings}
+
+
 def cmd_index(cfg, out=None):
     topics = topics_dir(cfg)
     repo = repo_root(topics)
@@ -93,7 +126,8 @@ def cmd_index(cfg, out=None):
         text = f.read_text(encoding="utf-8", errors="replace")
         notes.append({"path": f.relative_to(repo).as_posix(), "title": first_line(text, "# ") or f.stem,
                       "about": describe(text), "bytes": f.stat().st_size, "sha": blob_sha(repo, f)})
-    result = {"topics_dir": topics.relative_to(repo).as_posix(), "pull_warning": warning, "notes": notes}
+    topics_rel = topics.relative_to(repo).as_posix()
+    result = {"topics_dir": topics_rel, "pull_warning": warning, "notes": notes, "choices": choices(repo, topics_rel)}
     text = json.dumps(result, ensure_ascii=False, indent=1)
     if out:
         Path(out).write_text(text, encoding="utf-8")

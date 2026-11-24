@@ -174,6 +174,30 @@ class Brain(unittest.TestCase):
                                   capture_output=True, text=True).stdout.strip()
         self.assertEqual(note["sha"], expected)  # the same value GitHub reports for the file
 
+    def test_index_tallies_telegram_choices(self):
+        folder = self.repo / "video-digest" / "choices"
+        folder.mkdir(parents=True)
+        for name, decision, path, at in (("a", "approve", "Topics/ai/prompts.md", "2026-11-20"),
+                                         ("b", "approve", "Topics/ai/prompts.md", "2026-11-21"),
+                                         ("c", "reject", "Topics/trading/scalping.md", "2026-11-22")):
+            (folder / f"{name}.json").write_text(json.dumps({"at": at, "decision": decision, "path": path, "title": name}),
+                                                 encoding="utf-8")
+        (folder / "broken.json").write_text("{not json", encoding="utf-8")
+        with mock.patch("builtins.print"):
+            brain.cmd_index(self.cfg, self.home / "idx.json")
+        got = json.loads((self.home / "idx.json").read_text(encoding="utf-8"))["choices"]
+        self.assertEqual(got["areas"], {"ai": {"approve": 2, "reject": 0}, "trading": {"approve": 0, "reject": 1}})
+        self.assertEqual(got["notes"]["Topics/ai/prompts.md"], {"approve": 2, "reject": 0})
+        self.assertEqual([r["title"] for r in got["recent"]], ["c", "b", "a"])
+        self.assertEqual(len(got["warnings"]), 1)
+        self.assertIn("broken.json", got["warnings"][0])
+
+    def test_index_without_choices_is_empty_not_an_error(self):
+        with mock.patch("builtins.print"):
+            brain.cmd_index(self.cfg, self.home / "idx.json")
+        got = json.loads((self.home / "idx.json").read_text(encoding="utf-8"))["choices"]
+        self.assertEqual(got, {"areas": {}, "notes": {}, "recent": [], "warnings": []})
+
     def test_an_update_is_sent_with_the_secret_and_base_sha(self):
         f = self.proposal()
         with mock.patch("builtins.print"):
