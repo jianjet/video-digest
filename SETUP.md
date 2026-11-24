@@ -17,7 +17,6 @@
    ```
    git clone https://github.com/jianjet/video-digest %USERPROFILE%\Documents\video-digest
    ```
-   Work on your own branches, never on `main` (CONTRIBUTING.md).
 
 ## 3. Install
 ```
@@ -41,22 +40,23 @@ Copy `.env.example` to `.env` in the same folder (the repo root) and fill it in.
 ## 5b. Log in
 Open Firefox and log into Instagram with the **spare** account. That's all. The script reads a copy of Firefox's login. It never asks for a password and never logs in by itself.
 
+## 5c. The Telegram approval (n8n)
+Import `n8n/approve-brain-note.json` into your n8n (Workflows → Import from file), then on each Telegram and GitHub node pick your own credentials, and on the webhook node your Header Auth credential (`X-IGD-Secret`, the same value as `IGDIGEST_SECRET`). Set the GitHub owner and repo to your Brain repo and the Telegram chat id to yours. Activate it. Every Approve or Reject is saved as `video-digest/choices/<id>.json` in the Brain repo; that's how later runs learn what you like.
+
 ## 6. First run
 In Claude Code, from any folder:
 ```text
-/video-digest <creator handle>
+/video-digest https://www.instagram.com/reel/<code>/ https://youtu.be/<id>
+/video-digest @<creator handle>
 ```
-- On the first run Claude asks about your goals and writes `~/video-digest/goals.md` (the shape is in `goals.example.md`).
+- On the first run Claude asks what your Brain is for and writes `~/video-digest/goals.md` (the shape is in `goals.example.md`).
 - The first speech-to-text downloads about 1 GB of models once.
 - Everything it makes goes to `~/video-digest/`. Set `VIDEO_DIGEST_HOME` to use another folder.
-
-## 7. Optional: weekly by itself
-SKILL.md, section "Weekly mode", has the Task Scheduler command (Sundays 09:00) and a session-start line that tells you when new posts are waiting. Put the creators in `~/video-digest/creators.txt`, one handle per line.
 
 ## Rules that keep the account alive
 - Spare account only. No scripted login.
 - Never like, follow, comment or DM from it.
-- A login wall or rate limit (exit 3 or 4) stops everything. Wait; don't retry the same day.
+- A login wall or rate limit (exit 3 or 4) stops all Instagram requests. Wait; don't retry the same day.
 
 ## Stuck?
 - `ffmpeg is not on PATH`: open a new terminal after installing it.

@@ -4,6 +4,14 @@ One line per change, newest first. Pull requests add their line under **Unreleas
 
 ## Unreleased
 
+## 3.0.0 (2026-11-25): links in, only new knowledge out
+- `video_digest.py run --urls <file or links>`: Instagram, YouTube, TikTok or any yt-dlp link, through the same pipeline. Instagram keeps the Firefox login and its stop rules; other sites are read logged out and a refusal fails that link only. Creator handles still work.
+- Videos over 10 minutes keep up to `MAX_FRAMES_LONG` (60) key frames and read on-screen text every 10 s.
+- Judging is now "new or noise" against the Brain: only knowledge the Brain does not hold is proposed, each item marked try now / later / just good to know. Notes in English with the original term in brackets. Trading and investing are recorded as claims, never advice. The use/park/skip verdicts and `tools.csv` are gone.
+- `brain.py index` tallies the Approve / Reject choices n8n saves in `video-digest/choices/`; rejected topics rank lower.
+- `goals.md` now says what the Brain is for and its areas.
+- Removed: the Sunday task, the session-start check, `creators.txt`, CONTRIBUTING.md.
+
 ## 2.0.0 (2026-11-25): video-digest
 - ig-digest and media-digest merged into one skill, `skills/video-digest`; `ig_digest.py` renamed `video_digest.py`. Built on justyk99's ig-digest 1.4 and media-digest 1.1.
 - Renamed the project video-digest; output folder `~/video-digest` (`VIDEO_DIGEST_HOME`; `IG_DIGEST_HOME` still works).

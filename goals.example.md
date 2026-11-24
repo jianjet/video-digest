@@ -1,28 +1,19 @@
-# My goals for video-digest
+# What my Brain is for
 
 Copy this file to `~/video-digest/goals.md` and fill it in (or let Claude ask you on the first run).
-Every verdict ("use", "learn", "skip") is judged against these goals, not against the creator's hype.
+video-digest proposes only knowledge your Brain does not hold yet, filed under these areas.
 This file is personal: it never goes into the repo.
 
-## Goals (1 to 3)
-- **<short name>:** what you build or sell, and for whom.
-  Example: **cafe-sites:** websites and online ordering for small cafés.
-- **<short name>:** ...
+## Purpose
+Example: record everything I know, so I never have to re-watch a video to find it again.
 
-## Market notes
-Where your customers talk, and what rules a method must respect.
-Example: customers reply on WhatsApp, not email; local privacy law bans scraping personal data.
+## Areas
+One per line: the folder under `Topics/` in the Brain, then what goes in it. A video outside these may propose a new area.
+- `ai`: AI tools, models, prompting, agents, automation
+- `3d-printing`: printers, slicers, materials, settings, models to print
 
-## Time budget
-Example: full-time job; 6 to 8 hours a week on evenings and weekends.
+## Language
+Notes in English; keep the original term in brackets when it matters (a Chinese tool name, slang).
 
-## Playbook areas
-The sections of playbook.md, in order. Example:
-- Win clients
-- Builds to sell
-- Make videos and content
-- Better Claude Code habits
-
-## Copy playbook to (optional)
-A second place to keep playbook.md, for example your notes folder. Leave empty for none.
-Copy playbook to:
+## Already know well (optional)
+Topics where basics are noise, so only advanced items are proposed. Example: basic prompting tips.
