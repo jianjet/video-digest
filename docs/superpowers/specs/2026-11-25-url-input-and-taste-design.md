@@ -1,8 +1,8 @@
 # video-digest 3.0: links in, only new knowledge out (design, 2026-11-25)
 
 ## Why
-The Brain (Obsidian vault in the `brain` GitHub repo) is meant to record everything Jet knows. Today video-digest is built to
-read whole Instagram creators every Sunday and judge tools as if for a business. Jet wants instead: hand over a list of links
+The Brain (Obsidian vault in the `brain` GitHub repo) is meant to record everything the user knows. Today video-digest is built to
+read whole Instagram creators every Sunday and judge tools as if for a business. The user wants instead: hand over a list of links
 (Instagram reels now, YouTube and others later) whenever he likes, and get only **new** knowledge proposed to the Brain, approved
 in Telegram, with the skill learning from his Approve / Reject choices.
 
@@ -69,15 +69,15 @@ in Telegram, with the skill learning from his Approve / Reject choices.
 ### 3. Areas (`goals.md`)
 - `goals.md` becomes "what the Brain is for": purpose (record all my knowledge) and areas: AI · 3D printing · Business tactics
   and mindset · Trading and investing. Areas map to folders under `Topics/`. A reel outside them may propose a new area.
-- Claude writes Jet's `~/video-digest/goals.md` from this conversation; `goals.example.md` in the repo gets the new shape.
+- Claude writes the user's `~/video-digest/goals.md` from this conversation; `goals.example.md` in the repo gets the new shape.
 
 ### 4. Learning from Telegram choices
 - n8n, on both Approve and Reject, appends one JSON line to `video-digest/choices.jsonl` in the `brain` repo:
   `{"at", "decision": "approve|reject", "path", "title", "area", "summary", "sources"}`. The whole approval workflow (as in
-  Jet's screenshot, plus the log nodes) is built on the n8n instance reachable over MCP; Jet copies it into his own server
+  the user's screenshot, plus the log nodes) is built on the n8n instance reachable over MCP; the user copies it into his own server
   and re-picks the Telegram and GitHub credentials. Its JSON is also saved as `n8n/approve-brain-note.json` in this repo.
 - `brain.py index` (it already pulls the repo) also reads `choices.jsonl` and prints a per-area and per-topic tally.
-- Claude orders a run's proposals by that tally: topics Jet approved before first, topics with more rejects than approves last,
+- Claude orders a run's proposals by that tally: topics the user approved before first, topics with more rejects than approves last,
   their Telegram summary marked "you rejected similar before". Nothing is dropped automatically.
 
 ### 5. Removed
@@ -97,7 +97,7 @@ in Telegram, with the skill learning from his Approve / Reject choices.
 ### 7. First real test
 - Installs on this PC, asked before running: yt-dlp, gallery-dl, rapidocr, ffmpeg; Firefox with the spare account logged in;
   ~1 GB speech models on first run.
-- Jet's own Instagram reel links plus one YouTube link, end to end to a Telegram proposal.
+- The user's own Instagram reel links plus one YouTube link, end to end to a Telegram proposal.
 
 ## Left to the builder
 Exact flag names, the long-video thresholds, the `<site>/<id>` rule for unusual extractors, test structure.

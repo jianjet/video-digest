@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """brain.py - the bridge between video-digest and the Brain (an Obsidian vault kept in a git repo).
 
-    python brain.py index                     pull the vault, then list every topic note, and the tally of Jet's
+    python brain.py index                     pull the vault, then list every topic note, and the tally of the user's
                                               Approve / Reject choices, as JSON for Claude
     python brain.py propose <file.json> ...   check each proposal and send it to n8n for Telegram approval
     python brain.py propose --dry-run <file>  check and print, send nothing
@@ -15,7 +15,7 @@ A proposal file (Claude writes it):
      "sources": ["https://www.instagram.com/reel/XXXX/ @ 01:23"], "id": "optional"}
 n8n saves every Approve or Reject as video-digest/choices/<id>.json in the vault repo:
     {"at": "...", "decision": "approve" | "reject", "path": "Topics/<area>/<slug>.md", "title": "...", "summary": "..."}
-index tallies them per area and per note, so a run can rank what Jet rejected before lower (never drop it).
+index tallies them per area and per note, so a run can rank what the user rejected before lower (never drop it).
 
 base_sha is added here from the local file (git's blob hash, the same value GitHub reports), so n8n can refuse a
 proposal whose note changed after it was written.
@@ -93,7 +93,7 @@ def describe(text):
 
 
 def choices(repo, topics_rel="Topics"):
-    """Jet's Telegram decisions, read from the repo: counts per area and per note, the latest few with their titles, and
+    """The user's Telegram decisions, read from the repo: counts per area and per note, the latest few with their titles, and
     a warning per file that could not be read (it is skipped, never fatal)."""
     folder = Path(repo) / CHOICES_DIR
     areas, notes, recent, warnings = {}, {}, [], []

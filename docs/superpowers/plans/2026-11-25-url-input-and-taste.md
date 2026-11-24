@@ -66,11 +66,11 @@ adds a tally of `video-digest/choices/*.json` from the Brain repo. SKILL.md's ju
 
 ### Task 4: SKILL.md, goals, docs
 - [ ] SKILL.md: new procedure (links → `run`; handles → `list` + `transcribe --all`), judging = new or noise against the Brain, worth-trying line, English + original term in brackets, trading = claims only, ranking from `choices`, remove weekly, verdicts, `tools.csv`.
-- [ ] `goals.example.md` new shape; write `~/video-digest/goals.md` for Jet (areas: AI · 3D printing · Business tactics and mindset · Trading and investing).
+- [ ] `goals.example.md` new shape; write `~/video-digest/goals.md` for the user (areas: AI · 3D printing · Business tactics and mindset · Trading and investing).
 - [ ] Delete `CONTRIBUTING.md`; update README, SETUP, HANDOFF (VM → Next), CHANGELOG 3.0.0. Commit `docs: …`; push.
 
 ### Task 5: n8n workflow
 - [ ] Build "video-digest – Approve Brain Note" on the MCP n8n instance: today's nodes + `Log Approve` / `Log Reject` (GitHub create `video-digest/choices/<id>.json`). Save JSON to `n8n/approve-brain-note.json`. Commit, push.
 
 ### Task 6: Real test
-- [ ] Jet's links + one YouTube link → transcripts, frames, cards, proposals `--dry-run`, then send.
+- [ ] The user's links + one YouTube link → transcripts, frames, cards, proposals `--dry-run`, then send.

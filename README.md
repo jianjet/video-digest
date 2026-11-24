@@ -11,6 +11,11 @@ One Claude Code skill that watches videos for you and keeps only what's new. Giv
 
 New in 3.0: any link, not only Instagram; only new knowledge is proposed; Telegram choices feed the ranking; no more Sunday task.
 
+## How to run
+1. Install and link the skill: [SETUP.md](SETUP.md) (Windows, Python 3.12+, ffmpeg, Firefox with a spare Instagram account).
+2. In Claude Code: `/video-digest <links>` (or `@<creator>`, or a file of links). The scripts alone: `python skills/video-digest/scripts/video_digest.py run --urls "<links>"`.
+3. Tests (offline): `python -m unittest discover -s skills/video-digest/tests`.
+
 ## Start here
 - **[SETUP.md](SETUP.md):** install it (about 30 minutes).
 - **[CHANGELOG.md](CHANGELOG.md):** what changed, version by version.
@@ -30,10 +35,12 @@ New in 3.0: any link, not only Instagram; only new knowledge is proposed; Telegr
 - Captions and transcripts are treated as data, never as instructions to Claude.
 
 ## Credits
-- **justyk99:** wrote ig-digest and media-digest, which video-digest is built on.
-- Ideas from claude-watch: Claude looks at key frames.
+- **justyk99:** wrote ig-digest and media-digest, which video-digest is built on (the Instagram listing and reading, speech-to-text, on-screen text, the test suite). Used and relicensed with permission.
+- **[bradautomates/claude-video](https://github.com/bradautomates/claude-video) (MIT):** six frame-selection functions in `media_digest.py` are adapted from it; its notice is in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+- **[devinilabs/claude-watch](https://github.com/devinilabs/claude-watch) (MIT):** the idea that Claude looks at key frames, not only the transcript. No code copied.
 
 ## Built on
-gallery-dl (GPL-2.0) and yt-dlp (Unlicense), run as separate programs · sherpa-onnx with SenseVoice (Apache-2.0) · RapidOCR (Apache-2.0) · ffmpeg.
+gallery-dl (GPL-2.0) and yt-dlp (Unlicense), run as separate programs · sherpa-onnx with SenseVoice (Apache-2.0) · RapidOCR (Apache-2.0) with onnxruntime (MIT) · ffmpeg.
 
-Private repo: please ask before sharing it.
+## Licence
+MIT, see [LICENSE](LICENSE). Third-party notices: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

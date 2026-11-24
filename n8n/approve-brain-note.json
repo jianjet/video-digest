@@ -38,7 +38,7 @@
     {
       "id": "93da8ee0-4d04-476d-812b-8aa4a6162562", "name": "Get Current File", "type": "n8n-nodes-base.github", "typeVersion": 1.1, "position": [944, 320],
       "parameters": { "resource": "file", "operation": "get", "authentication": "accessToken",
-        "owner": { "__rl": true, "mode": "name", "value": "jianjet" }, "repository": { "__rl": true, "mode": "name", "value": "brain" },
+        "owner": { "__rl": true, "mode": "name", "value": "YOUR_GITHUB_USER" }, "repository": { "__rl": true, "mode": "name", "value": "YOUR_BRAIN_REPO" },
         "filePath": "={{ $('Normalize Proposal').item.json.path }}", "asBinaryProperty": false },
       "onError": "continueRegularOutput"
     },
@@ -66,7 +66,7 @@
     {
       "id": "105107e1-fbff-45a0-b1b4-d45aeeba61fc", "name": "Update Topic Note", "type": "n8n-nodes-base.github", "typeVersion": 1.1, "position": [1616, 320],
       "parameters": { "resource": "file", "operation": "edit", "authentication": "accessToken",
-        "owner": { "__rl": true, "mode": "name", "value": "jianjet" }, "repository": { "__rl": true, "mode": "name", "value": "brain" },
+        "owner": { "__rl": true, "mode": "name", "value": "YOUR_GITHUB_USER" }, "repository": { "__rl": true, "mode": "name", "value": "YOUR_BRAIN_REPO" },
         "filePath": "={{ $('Normalize Proposal').item.json.path }}", "binaryData": false,
         "fileContent": "={{ $('Normalize Proposal').item.json.content }}",
         "commitMessage": "=video-digest: update {{ $('Normalize Proposal').item.json.title }}" }
@@ -74,7 +74,7 @@
     {
       "id": "91ed17dc-cbe9-41f4-a6d4-201d7f45f4b4", "name": "Create Topic Note", "type": "n8n-nodes-base.github", "typeVersion": 1.1, "position": [1616, 512],
       "parameters": { "resource": "file", "operation": "create", "authentication": "accessToken",
-        "owner": { "__rl": true, "mode": "name", "value": "jianjet" }, "repository": { "__rl": true, "mode": "name", "value": "brain" },
+        "owner": { "__rl": true, "mode": "name", "value": "YOUR_GITHUB_USER" }, "repository": { "__rl": true, "mode": "name", "value": "YOUR_BRAIN_REPO" },
         "filePath": "={{ $('Normalize Proposal').item.json.path }}", "binaryData": false,
         "fileContent": "={{ $('Normalize Proposal').item.json.content }}",
         "commitMessage": "=video-digest: new note {{ $('Normalize Proposal').item.json.title }}" }
@@ -82,7 +82,7 @@
     {
       "id": "e8c66e24-8268-4d49-b4f3-2a5f3b6dc951", "name": "Log Approve", "type": "n8n-nodes-base.github", "typeVersion": 1.1, "position": [1840, 416],
       "parameters": { "resource": "file", "operation": "create", "authentication": "accessToken",
-        "owner": { "__rl": true, "mode": "name", "value": "jianjet" }, "repository": { "__rl": true, "mode": "name", "value": "brain" },
+        "owner": { "__rl": true, "mode": "name", "value": "YOUR_GITHUB_USER" }, "repository": { "__rl": true, "mode": "name", "value": "YOUR_BRAIN_REPO" },
         "filePath": "=video-digest/choices/{{ $('Normalize Proposal').item.json.id }}-{{ $now.toMillis() }}.json", "binaryData": false,
         "fileContent": "={{ JSON.stringify({ at: $now.toISO(), decision: 'approve', path: $('Normalize Proposal').item.json.path, area: $('Normalize Proposal').item.json.area, title: $('Normalize Proposal').item.json.title, summary: $('Normalize Proposal').item.json.summary, sources: $('Normalize Proposal').item.json.sources }, null, 1) }}",
         "commitMessage": "=video-digest: approved {{ $('Normalize Proposal').item.json.title }}" },
@@ -97,7 +97,7 @@
     {
       "id": "8376ef7c-55c7-4cbb-9f8c-14ba58374f73", "name": "Log Reject", "type": "n8n-nodes-base.github", "typeVersion": 1.1, "position": [944, 720],
       "parameters": { "resource": "file", "operation": "create", "authentication": "accessToken",
-        "owner": { "__rl": true, "mode": "name", "value": "jianjet" }, "repository": { "__rl": true, "mode": "name", "value": "brain" },
+        "owner": { "__rl": true, "mode": "name", "value": "YOUR_GITHUB_USER" }, "repository": { "__rl": true, "mode": "name", "value": "YOUR_BRAIN_REPO" },
         "filePath": "=video-digest/choices/{{ $('Normalize Proposal').item.json.id }}-{{ $now.toMillis() }}.json", "binaryData": false,
         "fileContent": "={{ JSON.stringify({ at: $now.toISO(), decision: 'reject', path: $('Normalize Proposal').item.json.path, area: $('Normalize Proposal').item.json.area, title: $('Normalize Proposal').item.json.title, summary: $('Normalize Proposal').item.json.summary, sources: $('Normalize Proposal').item.json.sources }, null, 1) }}",
         "commitMessage": "=video-digest: rejected {{ $('Normalize Proposal').item.json.title }}" },

@@ -4,6 +4,8 @@ One line per change, newest first. Pull requests add their line under **Unreleas
 
 ## Unreleased
 
+- MIT LICENSE; THIRD_PARTY_NOTICES.md keeps the MIT notice of bradautomates/claude-video (six frame functions in media_digest.py) and credits devinilabs/claude-watch (idea only). README gains How to run and linked credits; the "private repo" line is gone. Personal names and the Brain repo name removed from tracked files.
+
 ## 3.0.0 (2026-11-25): links in, only new knowledge out
 - `video_digest.py run --urls <file or links>`: Instagram, YouTube, TikTok or any yt-dlp link, through the same pipeline. Instagram keeps the Firefox login and its stop rules; other sites are read logged out and a refusal fails that link only. Creator handles still work.
 - Videos over 10 minutes keep up to `MAX_FRAMES_LONG` (60) key frames and read on-screen text every 10 s.
